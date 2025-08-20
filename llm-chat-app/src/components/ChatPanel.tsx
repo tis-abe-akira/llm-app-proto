@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send } from 'lucide-react';
+import { bedrockService } from '../services/bedrockService';
 
 interface Message {
   id: string;
@@ -27,22 +28,38 @@ const ChatPanel = ({ onNavigateToLaw }: ChatPanelProps) => {
     scrollToBottom();
   }, [messages]);
 
-  const mockLLMResponse = async (question: string) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    if (question.includes('高度') || question.includes('制限')) {
+  const getLLMResponse = async (question: string) => {
+    try {
+      // AWS Bedrockが設定されている場合は使用
+      if (bedrockService.isConfigured()) {
+        return await bedrockService.askQuestion(question);
+      } else {
+        // フォールバック: モック回答
+        console.warn('AWS Bedrock not configured, using mock response');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        if (question.includes('高度') || question.includes('制限')) {
+          return {
+            text: '飛行車の高度制限について説明します。都市部では地上から150メートルから300メートルが基本高度とされています。詳細は以下の法律をご確認ください。',
+            references: [
+              { title: '第3条（一般的な飛行高度制限）', section: '飛行車高度制限法', law: 'altitude' }
+            ]
+          };
+        }
+        
+        return {
+          text: 'ご質問にお答えします。飛行車に関する法律について、より具体的な質問をしていただければ詳しく説明できます。',
+          references: []
+        };
+      }
+    } catch (error) {
+      // エラー時もフォールバック
+      console.error('LLM response error:', error);
       return {
-        text: '飛行車の高度制限について説明します。都市部では地上から150メートルから300メートルが基本高度とされています。詳細は以下の法律をご確認ください。',
-        references: [
-          { title: '第3条（一般的な飛行高度制限）', section: '飛行車高度制限法', law: 'altitude' }
-        ]
+        text: 'すみません、一時的にサービスに接続できません。モック回答でお答えします。飛行車に関する法律について、より具体的な質問をしていただければ詳しく説明できます。',
+        references: []
       };
     }
-    
-    return {
-      text: 'ご質問にお答えします。飛行車に関する法律について、より具体的な質問をしていただければ詳しく説明できます。',
-      references: []
-    };
   };
 
   const handleSendMessage = useCallback(async () => {
@@ -60,7 +77,7 @@ const ChatPanel = ({ onNavigateToLaw }: ChatPanelProps) => {
     setIsLoading(true);
 
     try {
-      const response = await mockLLMResponse(message);
+      const response = await getLLMResponse(message);
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
