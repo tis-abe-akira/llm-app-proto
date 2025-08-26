@@ -5,7 +5,6 @@ description = "音声対話型観光案内チャットボットのバックエ�
 authors = [
     {name = "Tourism Chatbot Team", email = "dev@example.com"},
 ]
-readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "fastapi>=0.104.0",
