@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音声チャットボット(PoC)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: #f7fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            padding: 32px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #2d3748;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .header p {
+            color: #4a5568;
+            font-size: 1.1em;
+        }
+
+        .usage-guide {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 16px;
+            margin-top: 16px;
+            text-align: left;
+        }
+
+        .usage-guide h3 {
+            color: #2d3748;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .usage-guide ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .usage-guide li {
+            color: #4a5568;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .usage-guide strong {
+            color: #2d3748;
+        }
+
+        .status {
+            text-align: center;
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            border: 1px solid #e2e8f0;
+        }
+
+        .status.disconnected {
+            background: #f7fafc;
+            color: #4a5568;
+            border-color: #cbd5e0;
+        }
+
+        .status.connected {
+            background: #f0fff4;
+            color: #2d3748;
+            border-color: #c6f6d5;
+        }
+
+        .status.recording {
+            background: #fffbf0;
+            color: #2d3748;
+            border-color: #fed7d7;
+        }
+
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.95em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 140px;
+            justify-content: center;
+            background: #ffffff;
+            color: #2d3748;
+        }
+        
+        .btn:focus {
+            outline: 2px solid #3182ce;
+            outline-offset: 2px;
+        }
+
+        .btn-primary:hover {
+            background: #2c5282;
+        }
+        
+        .btn-record:hover {
+            background: #1a202c;
+        }
+        
+        .btn-secondary:hover {
+            background: #f7fafc;
+            border-color: #cbd5e0;
+        }
+
+        .btn-primary:active {
+            background: #2a4365;
+        }
+        
+        .btn-record:active {
+            background: #171923;
+        }
+        
+        .btn-secondary:active {
+            background: #edf2f7;
+        }
+
+        .btn-primary {
+            background: #3182ce;
+            color: #ffffff;
+            border-color: #3182ce;
+        }
+        
+        .btn-primary:focus {
+            outline-color: #2c5282;
+        }
+
+        .btn-record {
+            background: #2d3748;
+            color: #ffffff;
+            border-color: #2d3748;
+        }
+        
+        .btn-record:focus {
+            outline-color: #1a202c;
+        }
+
+        .btn-record.recording {
+            background: #4a5568;
+            border-color: #4a5568;
+        }
+
+
+        .btn-secondary {
+            background: #ffffff;
+            color: #2d3748;
+            border-color: #cbd5e0;
+        }
+        
+        .btn-secondary:focus {
+            outline-color: #3182ce;
+        }
+
+        .chat-container {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 16px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            margin-bottom: 12px;
+            padding: 12px 16px;
+            border-radius: 6px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+
+        .message.user {
+            background: #3182ce;
+            color: #ffffff;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message.bot {
+            background: #f7fafc;
+            color: #2d3748;
+            border: 1px solid #e2e8f0;
+            margin-right: auto;
+        }
+
+        .message.system {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+            margin: 0 auto;
+            font-style: italic;
+        }
+
+        .message.transcript {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 1px solid #cbd5e0;
+            margin-right: auto;
+            font-style: italic;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .text-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.95em;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .text-input:focus {
+            border-color: #3182ce;
+        }
+
+        .send-btn {
+            padding: 12px 20px;
+            background: #3182ce;
+            color: #ffffff;
+            border: 1px solid #3182ce;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+        }
+        
+        .send-btn:focus {
+            outline: 2px solid #2c5282;
+            outline-offset: 2px;
+        }
+
+        .send-btn:hover {
+            background: #2c5282;
+        }
+        
+        .send-btn:active {
+            background: #2a4365;
+        }
+
+        .recommendations {
+            margin-top: 12px;
+            padding: 16px;
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+        }
+
+        .recommendations h4 {
+            color: #2d3748;
+            margin-bottom: 12px;
+            font-size: 1em;
+            font-weight: 600;
+        }
+
+        .recommendation-item {
+            background: #ffffff;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            font-size: 0.9em;
+        }
+
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .volume-slider {
+            width: 100px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 24px;
+                margin: 16px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 280px;
+            }
+
+            .message {
+                max-width: 95%;
+            }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e2e8f0;
+            border-top: 2px solid #3182ce;
+            border-radius: 50%;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>観光案内チャットボット</h1>
+            <div class="usage-guide">
+                <h3>使い方</h3>
+                <ul>
+                    <li><strong>音声で相談</strong>: 「音声入力」→「のんびり温泉旅行がしたい」など→自動送信</li>
+                    <li><strong>テキストで相談</strong>: 下の入力欄に入力して送信</li>
+                    <li><strong>相談例</strong>: のんびり、アクティブ、グルメ、文化、自然、ファミリー</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="recordBtn" class="btn btn-record">
+                🎤 音声入力
+            </button>
+            <button id="sendModeBtn" class="btn btn-secondary">
+                🔄 自動送信
+            </button>
+            <button id="clearBtn" class="btn btn-secondary">
+                🗑️ 履歴クリア
+            </button>
+        </div>
+
+        <div id="chatContainer" class="chat-container">
+            <div class="message system">
+                音声認識の準備をしています...
+            </div>
+        </div>
+
+        <div class="input-container">
+            <input type="text" id="textInput" class="text-input" placeholder="音声認識結果がここに表示されます...">
+            <button id="sendBtn" class="send-btn">送信</button>
+        </div>
+
+        <div class="audio-controls">
+            <span>🔊 音量:</span>
+            <div class="volume-control">
+                <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.1" value="0.8">
+                <span id="volumeValue">80%</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class TourismChatbot {
+            constructor() {
+                this.ws = null;
+                this.isRecording = false;
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                this.audioContext = null;
+                this.currentAudio = null;
+                this.volume = 0.8;
+                this.audioWorkletLoaded = false;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 3;
+                this.reconnectDelay = 2000;
+                
+                // 音声入力制御
+                this.isAutoSend = true; // 自動送信モード
+                this.silenceTimer = null;
+                this.silenceTimeout = 2000; // 2秒の無音で自動送信
+                this.maxLength = 200; // 200文字で強制送信
+                this.currentTranscript = '';
+                
+                // Web Speech API setup
+                this.recognition = null;
+                this.setupSpeechRecognition();
+                
+                this.initializeElements();
+                this.setupEventListeners();
+                
+                // 自動接続開始
+                this.autoConnect();
+            }
+
+            initializeElements() {
+                this.recordBtn = document.getElementById('recordBtn');
+                this.sendModeBtn = document.getElementById('sendModeBtn');
+                this.clearBtn = document.getElementById('clearBtn');
+                this.chatContainer = document.getElementById('chatContainer');
+                this.textInput = document.getElementById('textInput');
+                this.sendBtn = document.getElementById('sendBtn');
+                this.volumeSlider = document.getElementById('volumeSlider');
+                this.volumeValue = document.getElementById('volumeValue');
+            }
+
+            setupEventListeners() {
+                // トグルボタンとして動作
+                this.recordBtn.addEventListener('click', () => this.toggleRecording());
+                this.sendModeBtn.addEventListener('click', () => this.toggleSendMode());
+                
+                this.clearBtn.addEventListener('click', () => this.clearHistory());
+                this.sendBtn.addEventListener('click', () => this.sendTextMessage());
+                this.textInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.sendTextMessage();
+                });
+                this.volumeSlider.addEventListener('input', (e) => {
+                    this.volume = parseFloat(e.target.value);
+                    this.volumeValue.textContent = Math.round(this.volume * 100) + '%';
+                });
+            }
+
+            setupSpeechRecognition() {
+                // Web Speech API の設定
+                if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    this.recognition = new SpeechRecognition();
+                    
+                    // 設定
+                    this.recognition.continuous = true; // 継続的に録音
+                    this.recognition.interimResults = true; // 途中結果も表示
+                    this.recognition.lang = 'ja-JP'; // 日本語
+                    this.recognition.maxAlternatives = 1;
+                    
+                    // イベントハンドラ
+                    this.recognition.onstart = () => {
+                        console.log('🎤 Web Speech API: Recording started');
+                        console.log('🎤 音声入力中... (話してください)');
+                        this.recordBtn.classList.add('recording');
+                        this.recordBtn.innerHTML = '🛑 入力停止';
+                        this.currentTranscript = '';
+                    };
+                    
+                    this.recognition.onresult = (event) => {
+                        let transcript = '';
+                        let interimTranscript = '';
+                        
+                        for (let i = event.resultIndex; i < event.results.length; i++) {
+                            const result = event.results[i];
+                            if (result.isFinal) {
+                                transcript += result[0].transcript;
+                            } else {
+                                interimTranscript += result[0].transcript;
+                            }
+                        }
+                        
+                        // 現在の文字起こし結果を更新
+                        this.currentTranscript = transcript;
+                        const displayText = transcript + interimTranscript;
+                        
+                        // テキスト入力欄に表示
+                        this.textInput.value = displayText;
+                        
+                        console.log(`📝 Transcript: "${displayText}" (final: ${transcript.length}, interim: ${interimTranscript.length})`);
+                        
+                        // 無音タイマーをリセット
+                        this.resetSilenceTimer();
+                        
+                        // 200文字超過チェック
+                        if (displayText.length > this.maxLength) {
+                            console.log('📤 Force sending due to length limit');
+                            this.sendCurrentTranscript();
+                            return;
+                        }
+                        
+                        // 自動送信モードで確定した文字がある場合
+                        if (this.isAutoSend && transcript.trim()) {
+                            this.startSilenceTimer();
+                        }
+                    };
+                    
+                    this.recognition.onend = () => {
+                        console.log('🛑 Web Speech API: Recording ended');
+                        this.isRecording = false;
+                        this.recordBtn.classList.remove('recording');
+                        this.recordBtn.innerHTML = '🎤 音声入力';
+                        this.clearSilenceTimer();
+                    };
+                    
+                    this.recognition.onerror = (event) => {
+                        console.error('❌ Speech recognition error:', event.error);
+                        this.addMessage('system', `音声認識エラー: ${event.error}`);
+                        this.isRecording = false;
+                        this.recordBtn.classList.remove('recording');
+                        this.recordBtn.innerHTML = '🎤 音声入力';
+                        this.clearSilenceTimer();
+                    };
+                    
+                    console.log('✅ Web Speech API initialized');
+                } else {
+                    console.warn('⚠️ Web Speech API not supported');
+                    this.addMessage('system', 'このブラウザは音声認識に対応していません');
+                }
+            }
+
+            toggleRecording() {
+                if (this.isRecording) {
+                    this.stopSpeechRecording();
+                } else {
+                    this.startSpeechRecording();
+                }
+            }
+            
+            startSpeechRecording() {
+                if (!this.recognition) {
+                    this.addMessage('system', '音声認識が利用できません');
+                    return;
+                }
+                
+                if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+                    this.addMessage('system', '接続を再試行中...');
+                    this.autoConnect();
+                    return;
+                }
+                
+                try {
+                    this.isRecording = true;
+                    this.recognition.start();
+                } catch (error) {
+                    console.error('❌ Speech recognition start error:', error);
+                    this.addMessage('system', '音声認識の開始に失敗しました');
+                    this.isRecording = false;
+                }
+            }
+            
+            stopSpeechRecording() {
+                if (this.recognition && this.isRecording) {
+                    this.recognition.stop();
+                }
+            }
+            
+            sendTranscriptToServer(transcript) {
+                if (!transcript.trim()) return;
+                
+                console.log(`📤 Sending transcript to server: "${transcript}"`);
+                
+                // テキストメッセージとしてサーバーに送信
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify({
+                        type: 'chat',
+                        data: transcript
+                    }));
+                    
+                    // ユーザーメッセージとして表示
+                    this.addMessage('user', transcript);
+                }
+            }
+
+            async autoConnect() {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    return;
+                }
+
+                try {
+                    this.ws = new WebSocket('ws://localhost:8000/ws/web-client');
+                    
+                    this.ws.onopen = () => {
+                        console.log('✅ WebSocket connected');
+                        this.reconnectAttempts = 0;
+                        this.addMessage('system', '観光案内チャットボットに接続しました！');
+                    };
+
+                    this.ws.onmessage = (event) => {
+                        console.log('📨 Received WebSocket message:', event.data);
+                        
+                        if (event.data instanceof Blob) {
+                            console.log('🔊 Received audio blob, size:', event.data.size);
+                            this.playAudio(event.data);
+                        } else {
+                            try {
+                                const parsedData = JSON.parse(event.data);
+                                console.log('📝 Parsed JSON message:', parsedData);
+                                this.handleMessage(parsedData);
+                            } catch (error) {
+                                console.error('❌ Failed to parse WebSocket message:', error, event.data);
+                            }
+                        }
+                    };
+
+                    this.ws.onclose = () => {
+                        console.log('🔌 WebSocket disconnected');
+                        this.handleReconnection();
+                    };
+
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        this.handleConnectionError();
+                    };
+
+                } catch (error) {
+                    console.error('Connection error:', error);
+                    this.handleConnectionError();
+                }
+            }
+            
+            handleReconnection() {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    console.log(`🔄 Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+                    
+                    setTimeout(() => {
+                        this.autoConnect();
+                    }, this.reconnectDelay);
+                } else {
+                    this.addMessage('system', '接続が失敗しました。ページをリロードしてください。');
+                }
+            }
+            
+            handleConnectionError() {
+                if (this.reconnectAttempts === 0) {
+                    this.addMessage('system', 'サーバーへの接続を試行中...');
+                }
+                this.handleReconnection();
+            }
+
+            // Deprecated: AudioWorklet methods (replaced by Web Speech API)
+            async startRecording() {
+                console.log('⚠️ AudioWorklet recording is deprecated, using Web Speech API instead');
+                this.startSpeechRecording();
+            }
+
+            stopRecording() {
+                console.log('⚠️ AudioWorklet recording is deprecated, using Web Speech API instead');
+                this.stopSpeechRecording();
+            }
+
+            downsampleTo16kHz(buffer, originalSampleRate) {
+                if (originalSampleRate === 16000) {
+                    return buffer;
+                }
+                
+                const downsampleRate = Math.round(originalSampleRate / 16000);
+                const downsampledLength = Math.floor(buffer.length / downsampleRate);
+                const downsampledBuffer = new Float32Array(downsampledLength);
+                
+                for (let i = 0; i < downsampledLength; i++) {
+                    downsampledBuffer[i] = buffer[i * downsampleRate];
+                }
+                
+                return downsampledBuffer;
+            }
+
+            calculateAudioLevel(buffer) {
+                let sum = 0;
+                for (let i = 0; i < buffer.length; i++) {
+                    sum += Math.abs(buffer[i]);
+                }
+                return sum / buffer.length;
+            }
+
+            convertToPCM16(float32Array) {
+                const buffer = new ArrayBuffer(float32Array.length * 2);
+                const view = new DataView(buffer);
+                
+                for (let i = 0; i < float32Array.length; i++) {
+                    // -1から1の範囲を-32768から32767の範囲に変換
+                    let sample = Math.max(-1, Math.min(1, float32Array[i]));
+                    sample = sample < 0 ? sample * 32768 : sample * 32767;
+                    
+                    // リトルエンディアンで16bit整数として書き込み
+                    view.setInt16(i * 2, Math.round(sample), true);
+                }
+                
+                return buffer;
+            }
+
+            handleMessage(data) {
+                console.log('🔄 Handling message type:', data.type);
+                
+                switch (data.type) {
+                    case 'connection':
+                        console.log('✅ Connection message:', data.data);
+                        this.addMessage('system', data.data);
+                        break;
+                    case 'transcript_partial':
+                        console.log('📝 Partial transcript:', data.data);
+                        this.updateTranscript(data.data, false);
+                        break;
+                    case 'transcript_final':
+                        console.log('✅ Final transcript:', data.data);
+                        this.updateTranscript(data.data, true);
+                        break;
+                    case 'chat_response':
+                        console.log('🤖 Chat response:', data.data);
+                        this.addChatResponse(data.data);
+                        break;
+                    case 'speech_synthesis_start':
+                        console.log('🔊 Speech synthesis start:', data.data);
+                        // 音声合成開始の表示を削除（ノイズ削減）
+                        break;
+                    case 'speech_synthesis_complete':
+                        console.log('✅ Speech synthesis complete:', data.data);
+                        // 音声合成完了の表示を削除（ノイズ削減）
+                        break;
+                    case 'error':
+                        console.log('❌ Error message:', data.data);
+                        this.addMessage('system', '❌ ' + data.data);
+                        break;
+                    default:
+                        console.log('❓ Unknown message type:', data.type, data.data);
+                }
+            }
+
+            updateTranscript(text, isFinal) {
+                let transcriptEl = document.querySelector('.message.transcript:last-child');
+                
+                if (!transcriptEl || (transcriptEl && transcriptEl.dataset.final === 'true')) {
+                    transcriptEl = this.addMessage('transcript', '🎤 ' + text);
+                } else {
+                    transcriptEl.innerHTML = '🎤 ' + text + (isFinal ? '' : ' <span class="loading"></span>');
+                }
+                
+                transcriptEl.dataset.final = isFinal.toString();
+                
+                if (isFinal) {
+                    this.addMessage('user', text);
+                }
+            }
+
+            addChatResponse(data) {
+                const messageEl = this.addMessage('bot', data.message);
+                
+                if (data.recommendations && data.recommendations.length > 0) {
+                    const recommendationsEl = document.createElement('div');
+                    recommendationsEl.className = 'recommendations';
+                    recommendationsEl.innerHTML = `
+                        <h4>📍 おすすめ観光プラン</h4>
+                        ${data.recommendations.map(rec => `
+                            <div class="recommendation-item">
+                                <strong>${rec.title}</strong><br>
+                                📍 ${rec.location} | ⏰ ${rec.duration} | 💰 ${rec.price_range}<br>
+                                <small>${rec.description}</small>
+                            </div>
+                        `).join('')}
+                    `;
+                    messageEl.appendChild(recommendationsEl);
+                }
+            }
+
+            addMessage(type, content) {
+                const messageEl = document.createElement('div');
+                messageEl.className = `message ${type}`;
+                messageEl.innerHTML = content;
+                
+                this.chatContainer.appendChild(messageEl);
+                this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+                
+                return messageEl;
+            }
+
+            sendTextMessage() {
+                const text = this.textInput.value.trim();
+                if (!text || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+                    return;
+                }
+
+                this.sendTranscriptToServer(text);
+                this.textInput.value = '';
+                this.currentTranscript = '';
+            }
+
+            clearHistory() {
+                if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+                    return;
+                }
+
+                this.ws.send(JSON.stringify({
+                    type: 'clear_history',
+                    data: ''
+                }));
+
+                this.chatContainer.innerHTML = '<div class="message system">会話履歴をクリアしました</div>';
+            }
+
+            async playAudio(audioBlob) {
+                try {
+                    if (this.currentAudio) {
+                        this.currentAudio.pause();
+                    }
+
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    this.currentAudio = new Audio(audioUrl);
+                    this.currentAudio.volume = this.volume;
+                    
+                    await this.currentAudio.play();
+                    
+                    this.currentAudio.onended = () => {
+                        URL.revokeObjectURL(audioUrl);
+                    };
+                } catch (error) {
+                    console.error('Audio playback error:', error);
+                }
+            }
+
+            updateStatus(message, className) {
+                // ステータス表示は削除済みのため、コンソールログのみ
+                console.log(`Status: ${message} (${className})`);
+            }
+
+            toggleSendMode() {
+                this.isAutoSend = !this.isAutoSend;
+                this.sendModeBtn.innerHTML = this.isAutoSend ? '🔄 自動送信' : '✋ 手動送信';
+                console.log(`Send mode changed to: ${this.isAutoSend ? 'auto' : 'manual'}`);
+                
+                // 手動モードに切り替えた場合、無音タイマーをクリア
+                if (!this.isAutoSend) {
+                    this.clearSilenceTimer();
+                }
+            }
+            
+            startSilenceTimer() {
+                // 既存のタイマーをクリア
+                this.clearSilenceTimer();
+                
+                this.silenceTimer = setTimeout(() => {
+                    console.log('📤 Auto-sending due to silence timeout');
+                    this.sendCurrentTranscript();
+                }, this.silenceTimeout);
+            }
+            
+            resetSilenceTimer() {
+                if (this.isAutoSend && this.currentTranscript.trim()) {
+                    this.startSilenceTimer();
+                }
+            }
+            
+            clearSilenceTimer() {
+                if (this.silenceTimer) {
+                    clearTimeout(this.silenceTimer);
+                    this.silenceTimer = null;
+                }
+            }
+            
+            sendCurrentTranscript() {
+                const text = this.textInput.value.trim();
+                if (text) {
+                    this.sendTranscriptToServer(text);
+                    this.textInput.value = '';
+                    this.currentTranscript = '';
+                    this.clearSilenceTimer();
+                    
+                    // 音声入力を停止
+                    if (this.isRecording) {
+                        this.stopSpeechRecording();
+                    }
+                }
+            }
+
+        }
+
+        // アプリケーション開始
+        document.addEventListener('DOMContentLoaded', () => {
+            new TourismChatbot();
+        });
+    </script>
+</body>
+</html>
