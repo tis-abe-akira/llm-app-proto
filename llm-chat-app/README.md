@@ -1,8 +1,79 @@
-# Flying Car Law Information System
+# 空飛ぶクルマ法律情報システム
 
-React application providing information about fictional flying car laws with AWS Bedrock LLM integration for interactive queries.
+## 概要
 
-## Architecture
+架空の空飛ぶクルマの法律に関する情報を提供するReactアプリケーション。AWS Bedrock LLM統合によるインタラクティブな質問応答機能を搭載。
+
+### 機能
+
+- 10の架空空飛ぶクルマ法律の静的情報表示
+- 右下角のインタラクティブチャットインターフェース
+- AWS Bedrock Claude 3.7 Sonnetモデル統合
+- 法律条項参照付きの専門的回答
+- チャットメッセージの自動スクロール
+- 法律詳細ページ間のナビゲーション
+
+## 使い方
+
+1. メインページで10の空飛ぶクルマ法律を閲覧
+2. 法律カードをクリックして詳細条項を表示
+3. チャットパネル（右下）を使用して法律に関する質問
+4. チャット回答には関連法律条項の参照が含まれる
+5. チャット内の法律参照をクリックして該当法律ページへ移動
+
+### セットアップ
+
+#### 前提条件
+
+- Node.js 18以上
+- Bedrockアクセス権限付きAWSアカウント
+- Bedrock権限付きAWS IAMユーザー
+
+#### インストール
+
+1. 依存関係のインストール:
+```bash
+npm install
+```
+
+2. 環境設定:
+```bash
+cp .env.example .env
+```
+
+3. AWS認証情報で`.env`を編集:
+```
+VITE_AWS_REGION=us-east-1
+VITE_AWS_ACCESS_KEY_ID=your_access_key_here
+VITE_AWS_SECRET_ACCESS_KEY=your_secret_key_here
+VITE_BEDROCK_MODEL_ID=us.anthropic.claude-3-7-sonnet-20250219-v1:0
+```
+
+#### 開発
+
+```bash
+npm run dev
+```
+
+アプリケーションは http://localhost:5173 で実行されます。
+
+#### ビルド
+
+```bash
+npm run build
+```
+
+## 技術的特徴
+
+### 技術スタック
+
+- **フロントエンド**: React 18, TypeScript, Vite
+- **スタイリング**: 直接CSS（フレームワークなし）
+- **アイコン**: Lucide React
+- **LLM**: AWS Bedrock Claude 3.7 Sonnet
+- **AWS SDK**: @aws-sdk/client-bedrock-runtime
+
+### アーキテクチャ
 
 ```mermaid
 graph TB
@@ -33,99 +104,32 @@ graph TB
     end
 ```
 
-## Features
-
-- Static information display for 10 fictional flying car laws
-- Interactive chat interface in bottom-right corner
-- AWS Bedrock integration with Claude 3.7 Sonnet model
-- Law-specific responses with section references
-- Auto-scrolling chat messages
-- Navigation between law detail pages
-
-## Technology Stack
-
-- **Frontend**: React 18, TypeScript, Vite
-- **Styling**: Direct CSS (no framework)
-- **Icons**: Lucide React
-- **LLM**: AWS Bedrock Claude 3.7 Sonnet
-- **AWS SDK**: @aws-sdk/client-bedrock-runtime
-
-## Setup
-
-### Prerequisites
-
-- Node.js 18 or higher
-- AWS account with Bedrock access
-- AWS IAM user with Bedrock permissions
-
-### Installation
-
-1. Install dependencies:
-```bash
-npm install
-```
-
-2. Configure environment:
-```bash
-cp .env.example .env
-```
-
-3. Edit `.env` with your AWS credentials:
-```
-VITE_AWS_REGION=us-east-1
-VITE_AWS_ACCESS_KEY_ID=your_access_key_here
-VITE_AWS_SECRET_ACCESS_KEY=your_secret_key_here
-VITE_BEDROCK_MODEL_ID=us.anthropic.claude-3-7-sonnet-20250219-v1:0
-```
-
-### Development
-
-```bash
-npm run dev
-```
-
-Application runs on http://localhost:5173
-
-### Build
-
-```bash
-npm run build
-```
-
-## Project Structure
+### プロジェクト構造
 
 ```
 src/
 ├── components/
-│   └── ChatPanel.tsx          # Chat interface component
+│   └── ChatPanel.tsx          # チャットインターフェースコンポーネント
 ├── data/
-│   └── lawContent.ts          # Flying car law definitions
+│   └── lawContent.ts          # 空飛ぶクルマ法律定義
 ├── services/
-│   ├── bedrockService.ts      # AWS Bedrock integration
-│   └── lawDatabase.ts         # Law database and prompt building
-├── App.tsx                    # Main application component
-└── App.css                    # Application styles
+│   ├── bedrockService.ts      # AWS Bedrock統合
+│   └── lawDatabase.ts         # 法律データベースとプロンプト構築
+├── App.tsx                    # メインアプリケーションコンポーネント
+└── App.css                    # アプリケーションスタイル
 ```
 
-## Usage
+### AWS Bedrock設定
 
-1. Browse the 10 flying car laws on the main page
-2. Click any law card to view detailed sections
-3. Use the chat panel (bottom-right) to ask questions about the laws
-4. Chat responses include relevant law section references
-5. Click law references in chat to navigate to specific law pages
+アプリケーションはClaude 3.7 SonnetモデルでのAWS Bedrockアクセスが必要。AWSアカウントに以下が必要:
 
-## AWS Bedrock Configuration
+- Bedrockサービスアクセス
+- Claude 3.7 Sonnetモデルアクセス
+- InvokeModelアクションのIAM権限
 
-The application requires AWS Bedrock access with the Claude 3.7 Sonnet model. Ensure your AWS account has:
+### 開発上の注意点
 
-- Bedrock service access
-- Model access for Claude 3.7 Sonnet
-- IAM permissions for InvokeModel action
-
-## Development Notes
-
-- Chat state is isolated in ChatPanel component to prevent re-rendering issues
-- All law content is centralized in lawContent.ts for maintainability
-- Bedrock responses are parsed as JSON with fallback to plain text
-- Auto-scroll functionality ensures latest messages are visible
+- 再レンダリング問題防止のためChatPanelコンポーネントでチャット状態を分離
+- 保守性のため全法律コンテンツをlawContent.tsに集約
+- プレーンテキストフォールバック付きでBedrock応答をJSONとして解析
+- 最新メッセージ表示確保のため自動スクロール機能実装

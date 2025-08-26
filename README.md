@@ -1,31 +1,29 @@
-# LLM Application Prototype
+# LLMアプリケーションプロトタイプ
 
-Prototype application demonstrating LLM integration patterns for web applications.
+Webアプリケーション向けのLLM統合パターンを実証するプロトタイプアプリケーション集。
 
-## Projects
+## プロジェクト
 
 ### llm-chat-app
 
-React application with AWS Bedrock integration for flying car law information system.
+空飛ぶクルマの法律情報システムのためのAWS Bedrock統合Reactアプリケーション。
 
-- **Location**: `./llm-chat-app/`
-- **Technology**: React 18, TypeScript, Vite, AWS Bedrock
-- **Purpose**: Static content display with LLM-powered chat interface
+- **場所**: `./llm-chat-app/`
+- **技術**: React 18, TypeScript, Vite, AWS Bedrock
+- **目的**: LLM搭載チャットインターフェースによる静的コンテンツ表示
 
-See [llm-chat-app/README.md](./llm-chat-app/README.md) for detailed documentation.
+詳細なドキュメントは [llm-chat-app/README.md](./llm-chat-app/README.md) を参照。
 
-## Requirements
+### voice-chat
 
-- Node.js 18+
-- AWS account with Bedrock access
-- AWS credentials with Bedrock permissions
+Web Speech APIとAWS Pollyを活用した音声対話型観光案内チャットボット。
 
-## Quick Start
+- **場所**: `./voice-chat/`
+- **技術**: FastAPI, Web Speech API, AWS Polly, WebSocket
+- **目的**: 音声認識と音声合成によるリアルタイム双方向音声対話
 
-```bash
-cd llm-chat-app
-npm install
-cp .env.example .env
-# Configure AWS credentials in .env
-npm run dev
-```
+詳細なドキュメントは [voice-chat/README.md](./voice-chat/README.md) を参照。
+
+## 注意事項
+
+これらのプロジェクトはPoCやデモ目的のプロトタイプサンプル集であり、本番環境での使用を想定していません。実装はあくまでコンセプト実証や技術検証を目的としています。
