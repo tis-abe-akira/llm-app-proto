@@ -34,6 +34,16 @@ LangChainとOpenAI GPT-4を活用したストリーミング対応チャット�
 
 詳細なドキュメントは [langchain-chat/README.md](./langchain-chat/README.md) を参照。
 
+### langchain-rag-chat
+
+LangChainとRAG（Retrieval-Augmented Generation）機能を持つ文書参照型チャットアプリケーション。
+
+- **場所**: `./langchain-rag-chat/`
+- **技術**: React + TypeScript, FastAPI, LangChain, ChromaDB, OpenAI GPT-4o
+- **目的**: RAGボット管理とドキュメントベース回答生成システム
+
+詳細なドキュメントは [langchain-rag-chat/README.md](./langchain-rag-chat/README.md) を参照。
+
 ## 注意事項
 
 これらのプロジェクトはPoCやデモ目的のプロトタイプサンプル集であり、本番環境での使用を想定していません。実装はあくまでコンセプト実証や技術検証を目的としています。
