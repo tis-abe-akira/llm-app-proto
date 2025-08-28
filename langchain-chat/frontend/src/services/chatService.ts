@@ -53,6 +53,17 @@ export class ChatService {
       throw new Error('Failed to clear chat history');
     }
   }
+
+  async getLatestMessage(sessionId: string): Promise<string> {
+    const response = await fetch(`${API_BASE_URL}/chat/latest/${sessionId}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to get latest message');
+    }
+
+    const data = await response.json();
+    return data.content;
+  }
 }
 
 export const chatService = new ChatService();

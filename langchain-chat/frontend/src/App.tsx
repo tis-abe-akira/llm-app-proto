@@ -4,7 +4,7 @@ import { ChatInput } from './components/ChatInput';
 import { Sidebar } from './components/Sidebar';
 import { useChat } from './hooks/useChat';
 import { useChatHistory } from './hooks/useChatHistory';
-import type { Message } from './types/chat';
+import type { Message, ChatSession } from './types/chat';
 
 function App() {
   const {
@@ -16,6 +16,7 @@ function App() {
     sendMessage,
     clearCurrentChat,
     startNewSession,
+    loadSession,
   } = useChat();
 
   const { sessions, saveSession, deleteSession } = useChatHistory();
@@ -39,9 +40,8 @@ function App() {
     }
   }, [currentSession, messages, saveSession]);
 
-  const handleSelectSession = async () => {
-    // For now, we'll just start a new session since we'd need to implement session loading
-    startNewSession();
+  const handleSelectSession = (session: ChatSession) => {
+    loadSession(session);
   };
 
   const handleDeleteSession = (sessionId: string) => {

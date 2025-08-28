@@ -29,10 +29,29 @@ class ChatService:
         messages = memory.chat_memory.messages + [HumanMessage(content=message)]
         
         response_content = ""
+        buffer = ""
         async for chunk in self.llm.astream(messages):
             if chunk.content:
+                # デバッグ: チャンクの内容を確認
+                print(f"Chunk content: {repr(chunk.content)}")
+                
                 response_content += chunk.content
-                yield chunk.content
+                buffer += chunk.content
+                
+                # より大きなチャンクでまとめて送信
+                if len(buffer) >= 10 or '\n' in buffer:
+                    print(f"Sending buffer: {repr(buffer)}")
+                    yield buffer
+                    buffer = ""
+        
+        # 残りのバッファを送信
+        if buffer:
+            print(f"Sending final buffer: {repr(buffer)}")
+            yield buffer
+        
+        print(f"Final response_content: {repr(response_content)}")
+        newline_char = '\n'
+        print(f"Response has newlines: {newline_char in response_content}")
         
         memory.chat_memory.add_user_message(message)
         memory.chat_memory.add_ai_message(response_content)

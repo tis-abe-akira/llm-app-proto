@@ -78,16 +78,38 @@ export const useChat = () => {
             const data = line.slice(6);
             if (data === '[DONE]') {
               setIsStreaming(false);
-              const assistantMessage: Message = {
-                id: `msg-${Date.now()}`,
-                role: 'assistant',
-                content: fullResponse,
-                timestamp: new Date(),
-              };
-              setMessages(prev => [...prev, assistantMessage]);
+              console.log('=== Streaming Complete ===');
+              console.log('Final response:', JSON.stringify(fullResponse));
+              console.log('Response has newlines:', fullResponse.includes('\n'));
+              
+              try {
+                // バックエンドから正しいフォーマットのメッセージを取得
+                const correctContent = await chatService.getLatestMessage(sessionId);
+                console.log('Correct content from backend:', JSON.stringify(correctContent));
+                
+                const assistantMessage: Message = {
+                  id: `msg-${Date.now()}`,
+                  role: 'assistant',
+                  content: correctContent,
+                  timestamp: new Date(),
+                };
+                setMessages(prev => [...prev, assistantMessage]);
+              } catch (error) {
+                console.error('Failed to get correct message, using streamed version:', error);
+                const assistantMessage: Message = {
+                  id: `msg-${Date.now()}`,
+                  role: 'assistant',
+                  content: fullResponse,
+                  timestamp: new Date(),
+                };
+                setMessages(prev => [...prev, assistantMessage]);
+              }
+              
               setStreamingMessage('');
               break;
-            } else {
+            } else if (data !== '') {
+              // 空文字でない限り追加（改行も含めて）
+              console.log('Adding streaming data:', JSON.stringify(data));
               fullResponse += data;
               setStreamingMessage(fullResponse);
             }
@@ -118,6 +140,11 @@ export const useChat = () => {
     startNewSession();
   }, [startNewSession]);
 
+  const loadSession = useCallback((session: ChatSession) => {
+    setCurrentSession(session);
+    setMessages(session.messages);
+  }, []);
+
   return {
     currentSession,
     messages,
@@ -127,5 +154,6 @@ export const useChat = () => {
     sendMessage,
     clearCurrentChat,
     startNewSession,
+    loadSession,
   };
 };
