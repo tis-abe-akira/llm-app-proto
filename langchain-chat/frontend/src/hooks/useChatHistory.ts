@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChatSession } from '../types/chat';
+import type { ChatSession } from '../types/chat';
 
 const STORAGE_KEY = 'langchain-chat-sessions';
 
@@ -11,10 +11,12 @@ export const useChatHistory = () => {
     if (savedSessions) {
       try {
         const parsed = JSON.parse(savedSessions);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const sessions = parsed.map((session: any) => ({
           ...session,
           createdAt: new Date(session.createdAt),
           updatedAt: new Date(session.updatedAt),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           messages: session.messages.map((msg: any) => ({
             ...msg,
             timestamp: new Date(msg.timestamp),

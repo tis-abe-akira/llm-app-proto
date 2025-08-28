@@ -1,4 +1,4 @@
-import { Message, ChatSession } from '../types/chat';
+import type { Message } from '../types/chat';
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -35,6 +35,7 @@ export class ChatService {
     }
 
     const data = await response.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return data.messages.map((msg: any, index: number) => ({
       id: `${sessionId}-${index}`,
       role: msg.role,

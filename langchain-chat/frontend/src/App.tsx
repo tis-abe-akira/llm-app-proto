@@ -1,10 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { ChatMessage } from './components/ChatMessage';
 import { ChatInput } from './components/ChatInput';
 import { Sidebar } from './components/Sidebar';
 import { useChat } from './hooks/useChat';
 import { useChatHistory } from './hooks/useChatHistory';
-import { Message } from './types/chat';
+import type { Message } from './types/chat';
 
 function App() {
   const {
@@ -39,7 +39,7 @@ function App() {
     }
   }, [currentSession, messages, saveSession]);
 
-  const handleSelectSession = async (session: any) => {
+  const handleSelectSession = async () => {
     // For now, we'll just start a new session since we'd need to implement session loading
     startNewSession();
   };
@@ -97,7 +97,7 @@ function App() {
             </div>
           ) : (
             <>
-              {allMessages.map((message, index) => (
+              {allMessages.map((message) => (
                 <ChatMessage
                   key={message.id}
                   message={message}

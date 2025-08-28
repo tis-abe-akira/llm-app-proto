@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Message, ChatSession } from '../types/chat';
+import type { Message, ChatSession } from '../types/chat';
 import { chatService } from '../services/chatService';
 
 export const useChat = () => {
