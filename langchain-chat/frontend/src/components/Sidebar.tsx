@@ -18,13 +18,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const formatDate = (date: Date) => {
     const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const isToday = now.toDateString() === date.toDateString();
+    const isYesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toDateString() === date.toDateString();
+    
+    const timeString = date.toLocaleTimeString('ja-JP', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    });
 
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Yesterday';
-    if (days < 7) return `${days} days ago`;
-    return date.toLocaleDateString();
+    if (isToday) {
+      return timeString; // "14:30"
+    }
+    
+    if (isYesterday) {
+      return `昨日 ${timeString}`; // "昨日 14:30"
+    }
+    
+    const isSameYear = now.getFullYear() === date.getFullYear();
+    if (isSameYear) {
+      const dateString = date.toLocaleDateString('ja-JP', { 
+        month: 'numeric', 
+        day: 'numeric' 
+      });
+      return `${dateString} ${timeString}`; // "12/25 14:30"
+    }
+    
+    const fullDateString = date.toLocaleDateString('ja-JP', { 
+      year: 'numeric',
+      month: 'numeric', 
+      day: 'numeric' 
+    });
+    return `${fullDateString} ${timeString}`; // "2024/12/25 14:30"
   };
 
   return (
@@ -47,16 +72,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             sessions.map((session) => (
               <div
                 key={session.id}
-                className={`group flex items-center justify-between p-2 mb-1 rounded-lg cursor-pointer hover:bg-gray-100 ${
+                className={`group flex items-start justify-between p-3 mb-2 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors ${
                   session.id === currentSessionId ? 'bg-blue-50 border border-blue-200' : ''
                 }`}
                 onClick={() => onSelectSession(session)}
+                title={session.title} // ホバーで完全なタイトルを表示
               >
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900 truncate">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="text-sm font-semibold text-gray-900 truncate leading-tight">
                     {session.title}
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-500 font-medium">
                     {formatDate(session.updatedAt)}
                   </div>
                 </div>
@@ -65,7 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     e.stopPropagation();
                     onDeleteSession(session.id);
                   }}
-                  className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all"
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-600 transition-all text-sm"
                   title="Delete chat"
                 >
                   ×

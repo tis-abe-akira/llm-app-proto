@@ -49,6 +49,18 @@ export const useChat = () => {
       timestamp: new Date(),
     };
 
+    // 最初のメッセージの場合、タイトルを自動生成
+    if (sessionToUse.messages.length === 0 && sessionToUse.title === 'New Chat') {
+      const autoTitle = content.slice(0, 40).trim();
+      const finalTitle = autoTitle.length === content.length ? autoTitle : `${autoTitle}...`;
+      sessionToUse = { 
+        ...sessionToUse, 
+        title: finalTitle,
+        updatedAt: new Date()
+      };
+      setCurrentSession(sessionToUse);
+    }
+
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
     setIsStreaming(true);
