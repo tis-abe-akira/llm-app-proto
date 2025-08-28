@@ -10,6 +10,10 @@ React + Vite + TypeScript フロントエンド と uv + FastAPI + LangChain バ
 - ✅ サイドバーからの履歴管理
 - ✅ OpenAI GPT-4.1 統合
 
+### 動作イメージ
+
+![アプリケーションスクリーンショット](./langchain-chat.gif)
+
 ## セットアップ
 
 ### 1. バックエンド
