@@ -18,7 +18,8 @@ React + TypeScript + Viteフロントエンドとuv + FastAPI + LangChainバッ�
 - 文書参照回答生成
 - 自動文書処理・埋め込み生成
 
-![アプリケーションスクリーンショット](./langchain-chat.gif)
+### 動作イメージ
+![アプリケーションスクリーンショット](./langchain-rag-chat.gif)
 
 ## アーキテクチャ
 
