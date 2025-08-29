@@ -14,7 +14,11 @@ export class ChatService {
     console.log('Message:', message);
     console.log('Session ID:', sessionId);
     console.log('Bot ID:', botId);
+    console.log('Bot ID type:', typeof botId);
+    console.log('Bot ID === null:', botId === null);
+    console.log('Bot ID === undefined:', botId === undefined);
     console.log('Request body:', requestBody);
+    console.log('Request body JSON:', JSON.stringify(requestBody));
     
     const response = await fetch(`${API_BASE_URL}/chat/stream`, {
       method: 'POST',

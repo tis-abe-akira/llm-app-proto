@@ -96,7 +96,7 @@ export function Chat() {
           {/* Bot Selector */}
           <div className="max-w-xs">
             <BotSelector
-              selectedBotId={selectedBotId ?? undefined}
+              selectedBotId={selectedBotId}
               onBotChange={handleBotChange}
             />
           </div>

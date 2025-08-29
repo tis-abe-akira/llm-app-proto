@@ -169,6 +169,7 @@ class ChatService:
         memory.chat_memory.add_user_message(message)
         memory.chat_memory.add_ai_message(response_content)
     
+    
     def get_chat_history(self, session_id: str) -> list:
         """Retrieve conversation history for a session.
         

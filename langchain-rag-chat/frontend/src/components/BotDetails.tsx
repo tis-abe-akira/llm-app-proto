@@ -3,8 +3,9 @@
  */
 
 import React, { useState, useRef } from 'react';
-import type { RAGBot } from '../types/ragBot';
+import type { RAGBot, ProcessingProgress as ProcessingProgressType } from '../types/ragBot';
 import { ragBotService } from '../services/ragBotService';
+import { ProcessingProgress } from './ProcessingProgress';
 
 interface BotDetailsProps {
   bot: RAGBot;
@@ -15,6 +16,7 @@ export function BotDetails({ bot, onBotUpdated }: BotDetailsProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [processingProgress, setProcessingProgress] = useState<ProcessingProgressType | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,9 +36,14 @@ export function BotDetails({ bot, onBotUpdated }: BotDetailsProps) {
       setUploading(true);
       setUploadError(null);
       setUploadSuccess(null);
+      setProcessingProgress(null);
       
-      const result = await ragBotService.uploadDocument(bot.id, file);
+      const result = await ragBotService.uploadDocument(bot.id, file, (progress) => {
+        setProcessingProgress(progress);
+      });
+      
       setUploadSuccess(result.message);
+      setProcessingProgress(null);
       
       // Refresh bot data to show updated document list
       const updatedBot = await ragBotService.getBot(bot.id);
@@ -44,6 +51,7 @@ export function BotDetails({ bot, onBotUpdated }: BotDetailsProps) {
       
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Failed to upload document');
+      setProcessingProgress(null);
     } finally {
       setUploading(false);
       // Clear file input
@@ -60,6 +68,7 @@ export function BotDetails({ bot, onBotUpdated }: BotDetailsProps) {
   const clearMessages = () => {
     setUploadError(null);
     setUploadSuccess(null);
+    setProcessingProgress(null);
   };
 
   return (
@@ -100,6 +109,10 @@ export function BotDetails({ bot, onBotUpdated }: BotDetailsProps) {
             </div>
           </div>
         )}
+        
+        {processingProgress && (
+          <ProcessingProgress progress={processingProgress} />
+        )}
 
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
           <input
@@ -121,10 +134,10 @@ export function BotDetails({ bot, onBotUpdated }: BotDetailsProps) {
             </div>
             <button
               onClick={handleUploadClick}
-              disabled={uploading}
+              disabled={uploading || bot.status === 'processing'}
               className="mt-3 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {uploading ? 'Uploading...' : 'Choose File'}
+              {uploading ? 'Processing...' : bot.status === 'processing' ? 'Bot is processing...' : 'Choose File'}
             </button>
           </div>
         </div>

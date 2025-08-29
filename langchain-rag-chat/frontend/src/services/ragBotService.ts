@@ -2,7 +2,7 @@
  * Service for RAG BOT API interactions
  */
 
-import type { RAGBot, CreateBotRequest, BotUploadResult } from '../types/ragBot';
+import type { RAGBot, CreateBotRequest, BotUploadResult, BotStatus, ProcessingProgress } from '../types/ragBot';
 
 const API_BASE = 'http://localhost:8000';
 
@@ -66,9 +66,55 @@ export class RAGBotService {
   }
 
   /**
+   * Get bot status
+   */
+  async getBotStatus(botId: string): Promise<{status: BotStatus, processing_progress?: ProcessingProgress, error_message?: string}> {
+    const response = await fetch(`${API_BASE}/bots/${botId}/status`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to get bot status: ${response.statusText}`);
+    }
+    
+    return response.json();
+  }
+  
+  /**
+   * Wait for bot to be ready
+   */
+  async waitForBotReady(botId: string, onProgress?: (progress: ProcessingProgress) => void): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const checkStatus = async () => {
+        try {
+          const statusInfo = await this.getBotStatus(botId);
+          
+          if (statusInfo.status === 'ready') {
+            resolve();
+            return;
+          }
+          
+          if (statusInfo.status === 'error') {
+            reject(new Error(statusInfo.error_message || 'Bot processing failed'));
+            return;
+          }
+          
+          if (statusInfo.status === 'processing' && statusInfo.processing_progress && onProgress) {
+            onProgress(statusInfo.processing_progress);
+          }
+          
+          setTimeout(checkStatus, 1000);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      
+      checkStatus();
+    });
+  }
+
+  /**
    * Upload document to a RAG bot
    */
-  async uploadDocument(botId: string, file: File): Promise<BotUploadResult> {
+  async uploadDocument(botId: string, file: File, onProgress?: (progress: ProcessingProgress) => void): Promise<BotUploadResult> {
     const formData = new FormData();
     formData.append('file', file);
 
@@ -81,7 +127,13 @@ export class RAGBotService {
       throw new Error(`Failed to upload document: ${response.statusText}`);
     }
 
-    return response.json();
+    const result = await response.json();
+    
+    if (onProgress) {
+      await this.waitForBotReady(botId, onProgress);
+    }
+    
+    return result;
   }
 }
 

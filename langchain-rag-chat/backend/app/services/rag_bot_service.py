@@ -72,7 +72,10 @@ class RAGBotService:
             "description": description,
             "created_at": datetime.now().isoformat(),
             "documents": [],
-            "document_count": 0
+            "document_count": 0,
+            "status": "ready",
+            "processing_progress": None,
+            "error_message": None
         }
         
         # Save bot metadata
@@ -96,7 +99,18 @@ class RAGBotService:
             return None
         
         with open(bot_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            bot_data = json.load(f)
+        
+        # Migration: Add status field if missing (for existing bots)
+        if "status" not in bot_data:
+            bot_data["status"] = "ready"
+            bot_data["processing_progress"] = None
+            bot_data["error_message"] = None
+            # Save the migrated data
+            with open(bot_file, 'w', encoding='utf-8') as f:
+                json.dump(bot_data, f, indent=2, ensure_ascii=False)
+        
+        return bot_data
     
     def list_bots(self) -> List[Dict]:
         """List all available RAG bots.
@@ -107,7 +121,18 @@ class RAGBotService:
         bots = []
         for bot_file in self.bots_data_dir.glob("*.json"):
             with open(bot_file, 'r', encoding='utf-8') as f:
-                bots.append(json.load(f))
+                bot_data = json.load(f)
+            
+            # Migration: Add status field if missing (for existing bots)
+            if "status" not in bot_data:
+                bot_data["status"] = "ready"
+                bot_data["processing_progress"] = None
+                bot_data["error_message"] = None
+                # Save the migrated data
+                with open(bot_file, 'w', encoding='utf-8') as f:
+                    json.dump(bot_data, f, indent=2, ensure_ascii=False)
+            
+            bots.append(bot_data)
         
         # Sort by creation time (most recent first)
         return sorted(bots, key=lambda x: x["created_at"], reverse=True)
@@ -136,6 +161,28 @@ class RAGBotService:
         
         return True
     
+    def _update_bot_status(self, bot_id: str, status: str, progress: Dict = None, error_message: str = None):
+        """Update bot status and progress information.
+        
+        Args:
+            bot_id: Bot identifier.
+            status: New bot status ('creating', 'processing', 'ready', 'error').
+            progress: Optional progress information dictionary.
+            error_message: Optional error message for error status.
+        """
+        bot_data = self.get_bot(bot_id)
+        if not bot_data:
+            return
+        
+        bot_data["status"] = status
+        bot_data["processing_progress"] = progress
+        bot_data["error_message"] = error_message
+        
+        # Save updated metadata
+        bot_file = self.bots_data_dir / f"{bot_id}.json"
+        with open(bot_file, 'w', encoding='utf-8') as f:
+            json.dump(bot_data, f, indent=2, ensure_ascii=False)
+    
     async def process_document(self, bot_id: str, file_path: str, filename: str) -> bool:
         """Process and add document to bot's knowledge base.
         
@@ -152,19 +199,52 @@ class RAGBotService:
             return False
         
         try:
+            # Set processing status
+            self._update_bot_status(bot_id, "processing", {
+                "current_step": "Loading document",
+                "total_steps": 4,
+                "completed_steps": 0,
+                "message": f"Loading {filename}..."
+            })
+            
             # Load document based on file type
             documents = self._load_document(file_path, filename)
             if not documents:
+                self._update_bot_status(bot_id, "error", error_message=f"Failed to load document: {filename}")
                 return False
+            
+            # Update progress: document loaded
+            self._update_bot_status(bot_id, "processing", {
+                "current_step": "Splitting document",
+                "total_steps": 4,
+                "completed_steps": 1,
+                "message": "Splitting document into chunks..."
+            })
             
             # Split documents into chunks
             chunks = self.text_splitter.split_documents(documents)
+            
+            # Update progress: chunks created
+            self._update_bot_status(bot_id, "processing", {
+                "current_step": "Creating embeddings",
+                "total_steps": 4,
+                "completed_steps": 2,
+                "message": f"Creating embeddings for {len(chunks)} chunks..."
+            })
             
             # Get or create vector store for this bot
             vector_store = self._get_vector_store(bot_id)
             
             # Add chunks to vector store
             vector_store.add_documents(chunks)
+            
+            # Update progress: embeddings created
+            self._update_bot_status(bot_id, "processing", {
+                "current_step": "Finalizing",
+                "total_steps": 4,
+                "completed_steps": 3,
+                "message": "Finalizing document processing..."
+            })
             
             # Update bot metadata
             bot_data["documents"].append({
@@ -174,7 +254,10 @@ class RAGBotService:
             })
             bot_data["document_count"] = len(bot_data["documents"])
             
-            # Save updated metadata
+            # Set ready status
+            self._update_bot_status(bot_id, "ready")
+            
+            # Save final updated metadata
             bot_file = self.bots_data_dir / f"{bot_id}.json"
             with open(bot_file, 'w', encoding='utf-8') as f:
                 json.dump(bot_data, f, indent=2, ensure_ascii=False)
@@ -183,6 +266,7 @@ class RAGBotService:
             
         except Exception as e:
             print(f"Error processing document: {e}")
+            self._update_bot_status(bot_id, "error", error_message=f"Processing failed: {str(e)}")
             return False
         finally:
             # Clean up temporary file

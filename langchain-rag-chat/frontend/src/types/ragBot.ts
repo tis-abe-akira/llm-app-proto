@@ -8,6 +8,15 @@ export interface Document {
   chunks: number;
 }
 
+export type BotStatus = 'creating' | 'processing' | 'ready' | 'error';
+
+export interface ProcessingProgress {
+  current_step: string;
+  total_steps: number;
+  completed_steps: number;
+  message: string;
+}
+
 export interface RAGBot {
   id: string;
   name: string;
@@ -15,6 +24,9 @@ export interface RAGBot {
   created_at: string;
   documents: Document[];
   document_count: number;
+  status: BotStatus;
+  processing_progress?: ProcessingProgress;
+  error_message?: string;
 }
 
 export interface CreateBotRequest {

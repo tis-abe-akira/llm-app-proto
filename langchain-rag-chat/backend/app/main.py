@@ -63,6 +63,21 @@ class CreateBotRequest(BaseModel):
     description: str = ""
 
 
+class ProcessingProgress(BaseModel):
+    """Model for document processing progress information.
+    
+    Attributes:
+        current_step: Current processing step description.
+        total_steps: Total number of processing steps.
+        completed_steps: Number of completed steps.
+        message: Detailed progress message.
+    """
+    current_step: str
+    total_steps: int
+    completed_steps: int
+    message: str
+
+
 class BotResponse(BaseModel):
     """Response model for RAG bot information.
     
@@ -73,6 +88,9 @@ class BotResponse(BaseModel):
         created_at: Bot creation timestamp.
         documents: List of uploaded documents.
         document_count: Number of documents in the bot's knowledge base.
+        status: Current bot status.
+        processing_progress: Optional processing progress information.
+        error_message: Optional error message if status is error.
     """
     id: str
     name: str
@@ -80,6 +98,9 @@ class BotResponse(BaseModel):
     created_at: str
     documents: list[dict]
     document_count: int
+    status: str
+    processing_progress: Optional[ProcessingProgress] = None
+    error_message: Optional[str] = None
 
 
 @app.post("/chat/stream")
@@ -99,6 +120,9 @@ async def chat_stream(request: ChatRequest):
     print(f"Message: {request.message}")
     print(f"Session ID: {request.session_id}")
     print(f"Bot ID: {request.bot_id}")
+    print(f"Bot ID type: {type(request.bot_id)}")
+    print(f"Bot ID repr: {repr(request.bot_id)}")
+    print(f"Raw request data would be visible in FastAPI logs")
     
     if not request.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
@@ -241,6 +265,30 @@ async def delete_bot(bot_id: str):
     return {"message": "Bot deleted successfully"}
 
 
+@app.get("/bots/{bot_id}/status")
+async def get_bot_status(bot_id: str):
+    """Get current status of a RAG bot.
+    
+    Args:
+        bot_id: Bot unique identifier.
+        
+    Returns:
+        dict: Bot status information including processing progress.
+        
+    Raises:
+        HTTPException: If bot not found.
+    """
+    bot_data = rag_bot_service.get_bot(bot_id)
+    if not bot_data:
+        raise HTTPException(status_code=404, detail="Bot not found")
+    
+    return {
+        "status": bot_data.get("status", "ready"),
+        "processing_progress": bot_data.get("processing_progress"),
+        "error_message": bot_data.get("error_message")
+    }
+
+
 @app.post("/bots/{bot_id}/documents")
 async def upload_document(
     bot_id: str,
@@ -259,8 +307,13 @@ async def upload_document(
         HTTPException: If bot not found or file processing fails.
     """
     # Check if bot exists
-    if not rag_bot_service.get_bot(bot_id):
+    bot_data = rag_bot_service.get_bot(bot_id)
+    if not bot_data:
         raise HTTPException(status_code=404, detail="Bot not found")
+    
+    # Check if bot is in a state that allows document upload
+    if bot_data.get("status") == "processing":
+        raise HTTPException(status_code=409, detail="Bot is currently processing another document")
     
     # Validate file type
     allowed_extensions = {'.pdf', '.md', '.xlsx', '.xls'}

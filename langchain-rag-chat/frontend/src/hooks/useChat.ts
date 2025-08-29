@@ -8,7 +8,11 @@ export const useChat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
-  const [selectedBotId, setSelectedBotId] = useState<string | null>(null);
+  const [selectedBotId, setSelectedBotId] = useState<string | null>(() => {
+    // Load selected bot ID from localStorage on initialization
+    const savedBotId = localStorage.getItem('selectedBotId');
+    return savedBotId === 'null' ? null : savedBotId;
+  });
 
   const generateSessionId = () => {
     return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -29,6 +33,12 @@ export const useChat = () => {
 
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim()) return;
+
+    // Check for potential Bot ID timing issue
+    const currentBotId = selectedBotId;
+    console.log('=== Send Message - Bot ID Check ===');
+    console.log('Selected Bot ID at send:', currentBotId);
+    console.log('LocalStorage Bot ID:', localStorage.getItem('selectedBotId'));
 
     let sessionToUse = currentSession;
     if (!sessionToUse) {
@@ -73,7 +83,7 @@ export const useChat = () => {
       console.log('Session ID:', sessionToUse.id);
       console.log('Selected Bot ID:', selectedBotId);
       
-      const { stream, sessionId } = await chatService.sendMessage(content, sessionToUse.id, selectedBotId || undefined);
+      const { stream, sessionId } = await chatService.sendMessage(content, sessionToUse.id, currentBotId);
       
       if (sessionId !== sessionToUse.id) {
         sessionToUse = { ...sessionToUse, id: sessionId };
@@ -141,7 +151,7 @@ export const useChat = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentSession]);
+  }, [currentSession, selectedBotId]);
 
   const clearCurrentChat = useCallback(async () => {
     if (currentSession) {
@@ -155,8 +165,11 @@ export const useChat = () => {
   }, [currentSession]);
 
   useEffect(() => {
-    startNewSession();
-  }, [startNewSession]);
+    // Only start new session if no current session exists
+    if (!currentSession) {
+      startNewSession();
+    }
+  }, []); // Empty dependency array to run only once on mount
 
   const loadSession = useCallback((session: ChatSession) => {
     setCurrentSession(session);
@@ -166,6 +179,12 @@ export const useChat = () => {
   const handleBotChange = useCallback((botId: string | null) => {
     console.log('=== Bot Change ===');
     console.log('New Bot ID:', botId);
+    console.log('New Bot ID type:', typeof botId);
+    console.log('New Bot ID === null:', botId === null);
+    console.log('New Bot ID === undefined:', botId === undefined);
+    
+    // Save to localStorage for persistence
+    localStorage.setItem('selectedBotId', botId || 'null');
     setSelectedBotId(botId);
   }, []);
 
