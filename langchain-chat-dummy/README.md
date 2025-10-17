@@ -40,7 +40,9 @@ npm install
 
 ```bash
 cd backend
-uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# start-server.sh のプロキシを設定したうえで実行！
+./start-server.sh
 ```
 
 ### フロントエンドを起動
