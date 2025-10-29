@@ -6,6 +6,7 @@ streaming response handling, and conversation history management.
 
 from typing import AsyncGenerator
 from langchain_openai import ChatOpenAI
+from langchain_aws import ChatBedrock
 from langchain.memory import ConversationBufferMemory
 from langchain.schema import HumanMessage, AIMessage
 from app.core.config import settings
@@ -18,18 +19,31 @@ class ChatService:
     and session-based chat history persistence.
     
     Attributes:
-        llm: ChatOpenAI instance for LLM interactions.
+        llm: LLM instance (ChatOpenAI or ChatBedrock) for interactions.
         memories: Dictionary storing conversation memories by session ID.
     """
     
     def __init__(self):
-        """Initialize ChatService with OpenAI LLM and memory storage."""
-        self.llm = ChatOpenAI(
-            model=settings.openai_model,
-            api_key=settings.openai_api_key,
-            streaming=True,
-            temperature=0.7
-        )
+        """Initialize ChatService with configured LLM and memory storage."""
+        # LLMプロバイダーに応じて初期化
+        if settings.llm_provider == "bedrock":
+            self.llm = ChatBedrock(
+                model_id=settings.bedrock_model_id,
+                region_name=settings.aws_region,
+                credentials_profile_name=None,  # 環境変数から認証情報を取得
+                streaming=True,
+                model_kwargs={
+                    "temperature": 0.7,
+                    "max_tokens": 2000,
+                }
+            )
+        else:  # openai
+            self.llm = ChatOpenAI(
+                model=settings.openai_model,
+                api_key=settings.openai_api_key,
+                streaming=True,
+                temperature=0.7
+            )
         self.memories = {}
     
     def get_or_create_memory(self, session_id: str) -> ConversationBufferMemory:
